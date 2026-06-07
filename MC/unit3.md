@@ -203,7 +203,9 @@ Legend:
 ```
 
 *Figure: AODV Route Discovery and Error Handling Flow*
+![AODV Route Discovery and Error Handling Flow](images/aodv.png)
 
+*Figure: AODV Route Discovery and Error Handling Flow*
 ---
 
 ### Advantages of AODV
