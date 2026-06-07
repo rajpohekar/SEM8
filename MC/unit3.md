@@ -337,7 +337,7 @@ ZRP divides the network into **overlapping zones** centered at each node.
    │  4. Route returned when F is found in some zone     │
    └─────────────────────────────────────────────────────┘
 ```
-
+![Zone Routing Protocol — Intrazone (IARP) and Interzone (IERP)](zrp.png)
 *Figure: Zone Routing Protocol — Intrazone (IARP) and Interzone (IERP)*
 
 ---
