@@ -337,7 +337,7 @@ ZRP divides the network into **overlapping zones** centered at each node.
    │  4. Route returned when F is found in some zone     │
    └─────────────────────────────────────────────────────┘
 ```
-![Zone Routing Protocol — Intrazone (IARP) and Interzone (IERP)](assests/zrp.png)
+![Zone Routing Protocol — Intrazone (IARP) and Interzone (IERP)](assets/zrp.png)
 *Figure: Zone Routing Protocol — Intrazone (IARP) and Interzone (IERP)*
 
 ---
@@ -656,7 +656,7 @@ ROUTE CACHE (Promiscuous):
    Node B overhears: D→E link exists → caches D→E route.
    Useful for future routing decisions.
 ```
-![Zone Routing Protocol — Intrazone (IARP) and Interzone (IERP)](assests/d.png)
+![Zone Routing Protocol — Intrazone (IARP) and Interzone (IERP)](assets/d.png)
 *Figure: DSR Route Discovery (RREQ), Route Reply (RREP), and Data Forwarding*
 
 ---
