@@ -429,19 +429,23 @@ ZRP divides the network into **overlapping zones** centered at each node.
 ## Diagram
 
 ```
-    MANET                              VANET
-    ═════                              ═════
+                    MANET vs VANET
 
-  [Laptop]──[Phone]              [Car]──[Car]──[Car]
-      \        /                   |              |
-   [Tablet]──[PDA]              [RSU]          [RSU]
-      \                            |              |
-   [Sensor]                   [Traffic    [Emergency
-                               Control]   Vehicle]
-
-  Random movement               Constrained by roads
-  Any direction                 Road topology followed
-  Indoor/Field                  City/Highway scale
+┌─────────────────────┐      ┌─────────────────────┐
+│        MANET        │      │        VANET        │
+├─────────────────────┤      ├─────────────────────┤
+│  Laptop ─ Phone     │      │ Car ─ Car ─ Car     │
+│     │       │       │      │  │           │      │
+│  Tablet ─ PDA       │      │ RSU         RSU     │
+│     │               │      │  │           │      │
+│  Sensor Node        │      │ Traffic   Emergency │
+│                     │      │ Control   Vehicle   │
+├─────────────────────┤      ├─────────────────────┤
+│ Random Mobility     │      │ Road-Constrained    │
+│ Any Direction       │      │ Fixed Road Paths    │
+│ Indoor / Campus     │      │ City / Highway      │
+│ Low-Medium Speed    │      │ High Speed Vehicles │
+└─────────────────────┘      └─────────────────────┘
 ```
 
 *Figure: MANET vs VANET — Node Types and Mobility*
