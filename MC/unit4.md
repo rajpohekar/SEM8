@@ -1230,6 +1230,607 @@ SH detects disconnection → tells CN "window = 0" → CN enters persist mode (f
 
 ---
 
-*End of Unit Notes — TCP Modifications & Mobile IP*
+---
+
+# Q9. DHCP — Basic Purpose, Protocol Explanation with Diagram
+
+## Introduction
+
+**DHCP (Dynamic Host Configuration Protocol)** is a **network management protocol** defined in **RFC 2131** that automatically assigns **IP addresses and network configuration parameters** to devices joining a network. Without DHCP, a network administrator would have to manually configure the IP address, subnet mask, default gateway, and DNS server on every device — an impractical task in large or dynamic networks (especially Wi-Fi hotspots and mobile networks where devices join and leave constantly).
+
+DHCP follows a **client-server model**: the **DHCP Server** manages a pool of IP addresses and leases them to **DHCP Clients** (mobile devices, laptops, phones) for a configurable period called the **lease time**.
+
+---
+
+## Main Answer
+
+### Basic Purpose of DHCP
+
+1. **Automatic IP Address Assignment** — Dynamically assigns a unique IP address from a pool to each device that connects to the network; no manual configuration needed.
+2. **Network Parameter Distribution** — Along with IP address, DHCP provides: subnet mask, default gateway, DNS server, NTP server, domain name — everything the device needs to communicate on the network.
+3. **Address Reuse (Lease Management)** — IP addresses are leased for a limited time; when a device disconnects, its IP is returned to the pool and can be reassigned to another device.
+4. **Conflict Prevention** — DHCP server maintains a central record of all assigned addresses, preventing two devices from getting the same IP (IP conflict).
+5. **Scalability** — Supports networks ranging from a home router with 10 devices to a mobile carrier serving millions of devices.
+6. **Mobile Support** — Critical for mobile networks where devices roam between cells and subnets; each new subnet assigns a fresh IP automatically via DHCP.
+
+---
+
+### DHCP Key Terminology
+
+| Term | Description |
+|---|---|
+| **DHCP Server** | Server that manages IP address pool and responds to client requests |
+| **DHCP Client** | Device requesting IP configuration (mobile phone, laptop) |
+| **IP Address Pool (Scope)** | Range of IP addresses the server can assign (e.g., 192.168.1.100–192.168.1.200) |
+| **Lease** | Temporary assignment of an IP address to a client for a defined duration |
+| **Lease Time** | Duration of the IP assignment (e.g., 24 hours, 8 days) |
+| **Renewal** | Client requests to extend its lease before it expires (at 50% of lease time) |
+| **Rebinding** | Client broadcasts renewal request if unicast renewal fails (at 87.5% of lease time) |
+| **DHCPDISCOVER** | Broadcast message from client to find available DHCP servers |
+| **DHCPOFFER** | Server's response offering an IP address to the client |
+| **DHCPREQUEST** | Client formally requests the offered IP address |
+| **DHCPACK** | Server acknowledges and confirms the lease |
+| **DHCPNAK** | Server rejects the client's request (IP no longer available) |
+| **DHCPRELEASE** | Client voluntarily releases its IP when disconnecting |
+| **DHCPDECLINE** | Client rejects the offered IP (detected conflict via ARP) |
+| **DHCPINFORM** | Client already has IP but requests additional config parameters |
+
+---
+
+### DHCP Protocol — DORA Process (Step-by-Step)
+
+The standard DHCP IP acquisition process is called **DORA**:
+**D**ISCOVER → **O**FFER → **R**EQUEST → **A**CK
+
+#### Step 1 — DHCPDISCOVER (Client → Broadcast)
+
+- Client has **no IP address** yet (just joined the network).
+- Client sends a **UDP broadcast** on port 67 (server port):
+  - Source IP: `0.0.0.0` (no IP yet)
+  - Destination IP: `255.255.255.255` (broadcast — reaches all devices on LAN)
+  - Contains: Client MAC address, requested lease time, hostname
+- All DHCP servers on the network receive this broadcast.
+
+#### Step 2 — DHCPOFFER (Server → Client)
+
+- DHCP server(s) receive the DISCOVER and respond with an **OFFER**:
+  - Offered IP address (tentatively reserved from pool)
+  - Subnet mask, default gateway, DNS server
+  - Lease time
+  - Server's own IP address
+- OFFER is sent as broadcast (or unicast if client can receive unicast).
+- If **multiple DHCP servers** exist, multiple OFFERs arrive; client picks the first one.
+
+#### Step 3 — DHCPREQUEST (Client → Broadcast)
+
+- Client selects the first OFFER received and sends a **REQUEST** broadcast:
+  - Contains: the offered IP it accepted, the server ID (to tell other servers it chose them)
+  - Still broadcast (so all servers know which one was chosen; unchosen servers release their offers)
+- This formally requests the IP from the chosen server.
+
+#### Step 4 — DHCPACK (Server → Client)
+
+- Chosen DHCP server sends a **DHCPACK** (Acknowledgement):
+  - Confirms the IP address assignment
+  - Provides final lease parameters (lease time, subnet, gateway, DNS)
+- Client **configures its network interface** with the received parameters.
+- Client performs an **ARP check** (Gratuitous ARP) to verify no other device on the network already uses this IP.
+- If conflict found → client sends **DHCPDECLINE** → process restarts.
+- If no conflict → **client is now fully configured and can communicate on the network**.
+
+#### Lease Renewal Process
+
+```
+At 50% of lease time  → Client sends DHCPREQUEST (unicast) to server for renewal
+At 87.5% of lease time → If no response, client broadcasts DHCPREQUEST (rebind)
+At 100% (lease expires) → Client must stop using IP; restarts DORA from scratch
+```
+
+---
+
+## Diagram
+
+```
+DHCP — DORA PROTOCOL FLOW
+
+DHCP CLIENT                                    DHCP SERVER
+(Mobile / Laptop)                              (Router / Server)
+      │                                               │
+      │  [No IP yet — just joined network]            │
+      │                                               │
+ ─────┼──────────────────────────────────────────────┼─────
+      │  STEP 1: DHCPDISCOVER (Broadcast)             │
+      │──────────────────────────────────────────────>│
+      │  src=0.0.0.0, dst=255.255.255.255             │
+      │  UDP port: 68 (client) → 67 (server)          │
+      │  "I need an IP! Anyone there?"                │
+      │  [Client MAC, requested lease time]           │
+      │                                               │ Check pool
+      │                                               │ Reserve IP
+ ─────┼──────────────────────────────────────────────┼─────
+      │  STEP 2: DHCPOFFER (Broadcast / Unicast)      │
+      │<──────────────────────────────────────────────│
+      │  "I offer you: 192.168.1.105"                 │
+      │  [Offered IP, Subnet mask: 255.255.255.0      │
+      │   Gateway: 192.168.1.1                        │
+      │   DNS: 8.8.8.8                                │
+      │   Lease Time: 86400s (24 hrs)]                │
+      │                                               │
+      │  (Client picks first OFFER received)          │
+      │                                               │
+ ─────┼──────────────────────────────────────────────┼─────
+      │  STEP 3: DHCPREQUEST (Broadcast)              │
+      │──────────────────────────────────────────────>│
+      │  src=0.0.0.0, dst=255.255.255.255             │
+      │  "I accept 192.168.1.105 from Server X"       │
+      │  [Requested IP, Server ID]                    │
+      │  (Other servers see this → release offers)    │
+      │                                               │ Confirm lease
+      │                                               │ Update records
+ ─────┼──────────────────────────────────────────────┼─────
+      │  STEP 4: DHCPACK (Broadcast / Unicast)        │
+      │<──────────────────────────────────────────────│
+      │  "Confirmed! 192.168.1.105 is yours"          │
+      │  [Final IP, Subnet, Gateway, DNS,             │
+      │   Lease Time, Renewal Time T1=43200s]         │
+      │                                               │
+      │  [Client does Gratuitous ARP to check         │
+      │   no conflict on network]                     │
+      │                                               │
+      │  CLIENT CONFIGURED:                           │
+      │  IP: 192.168.1.105 / 24                       │
+      │  GW: 192.168.1.1                              │
+      │  DNS: 8.8.8.8  ✓ Ready to communicate!        │
+      │                                               │
+ ─────┼──────────────────────────────────────────────┼─────
+      │  LEASE RENEWAL (at T1 = 50% of lease time)   │
+      │──DHCPREQUEST (unicast)───────────────────────>│
+      │<──DHCPACK (lease extended)────────────────────│
+      │                                               │
+      │  ON DISCONNECT:                               │
+      │──DHCPRELEASE─────────────────────────────────>│
+      │  "I'm leaving, here's my IP back"            │
+      │                                               │ IP returned
+      │                                               │ to pool ✓
+
+
+DHCP MESSAGE FIELDS:
+┌─────────────────────────────────────────────────────┐
+│ Op Code (1=Request, 2=Reply)                        │
+│ Hardware Type (Ethernet=1)                          │
+│ Transaction ID (random, matches DISCOVER to ACK)    │
+│ Seconds Elapsed                                     │
+│ Client IP (0 if unknown)                            │
+│ Your IP (offered/assigned IP)                       │
+│ Server IP                                           │
+│ Client MAC Address                                  │
+│ Options (Type 53=Msg type, Type 1=Subnet, etc.)     │
+└─────────────────────────────────────────────────────┘
+```
+
+*Figure: DHCP DORA Process — Complete IP Address Assignment Flow*
+
+---
+
+### DHCP in Mobile Networks
+
+In mobile networks, DHCP is used at every point of attachment:
+- When a mobile device connects to a Wi-Fi network → DHCP assigns an IP.
+- When a mobile device connects to a 4G/5G cell → the **PGW (Packet Gateway)** acts as a DHCP server and assigns an IP.
+- When a Mobile Host (MH) moves to a new subnet in **Mobile IP** → DHCP assigns a new **Care-of-Address (CoA)** in the foreign network.
+
+---
+
+### Advantages of DHCP
+
+1. **Eliminates Manual Configuration** — No admin intervention needed per device.
+2. **Efficient Address Utilization** — Addresses returned to pool when unused; no waste.
+3. **Centralized Management** — One server manages all addresses; easy auditing and control.
+4. **Supports Mobility** — New IP assigned automatically on every network attachment.
+5. **Scalable** — Works for 2-device home networks to million-device mobile operator networks.
+
+### Disadvantages of DHCP
+
+1. **Single Point of Failure** — If DHCP server is down, no new device can join (mitigated by redundant DHCP servers).
+2. **Security Risk** — Rogue DHCP servers can send malicious configurations (mitigated by DHCP snooping).
+3. **IP Address Changes** — Devices may get different IP each time (use DHCP reservations for servers).
+4. **Broadcast Overhead** — DISCOVER and REQUEST are broadcast; adds load in very large networks.
+
+---
+
+## Conclusion
+
+**DHCP** is the invisible backbone of modern networking — every smartphone, laptop, and IoT device uses DHCP to join a network automatically. The **DORA process (Discover → Offer → Request → ACK)** is a four-step handshake that assigns IP addresses and full network configuration within milliseconds. In mobile and wireless environments, DHCP is essential for handling the constant joining and leaving of mobile devices across different network segments.
+
+---
+
+# Q10. Data Flow Diagram — Client Initialization via DHCP in Mobile IP
+
+## Introduction
+
+In **Mobile IP**, when a Mobile Host (MH) moves to a new foreign network, it needs two things:
+1. A **Care-of-Address (CoA)** — an IP address in the foreign network (obtained via DHCP or FA advertisement).
+2. A **registration** with its Home Agent (HA) to update its binding (HoA → CoA).
+
+The **client initialization via DHCP** in Mobile IP refers to the sequence of events — from the MH physically attaching to a new foreign network, through DHCP IP assignment, to successful Mobile IP registration and data flow. This is the **co-located CoA model** (MH gets its own IP via DHCP, acts as its own FA).
+
+---
+
+## Main Answer
+
+### Phases of Mobile IP Client Initialization
+
+The complete initialization has **four sequential phases**:
+
+| Phase | Protocol | Purpose |
+|---|---|---|
+| **Phase 1** | Layer 2 (802.11/LTE) | Physical attachment — MH associates with new AP/cell |
+| **Phase 2** | DHCP (RFC 2131) | MH obtains CoA (co-located address) in foreign network |
+| **Phase 3** | Mobile IP Registration | MH registers new CoA with HA |
+| **Phase 4** | Data Flow | CN → HA → tunnel → MH (via new CoA); MH → CN direct |
+
+---
+
+### Detailed Step-by-Step Initialization
+
+#### Phase 1 — Layer 2 Attachment
+
+1. MH's radio detects a new **Wi-Fi/4G signal** in the foreign network.
+2. MH completes **L2 association** (Wi-Fi: 802.11 authentication + association; 4G: RRC connection setup).
+3. MH is now physically connected to the Foreign Network's access point/base station.
+4. MH has **no IP address** at this point — L2 connection only.
+
+#### Phase 2 — DHCP for CoA Assignment
+
+5. MH sends **DHCPDISCOVER** (broadcast) on the foreign network.
+6. **DHCP server** (in foreign network, or on router) responds with **DHCPOFFER**: offers an IP (e.g., `10.0.2.55`) as the **co-located CoA**.
+7. MH sends **DHCPREQUEST** accepting the offer.
+8. DHCP server sends **DHCPACK** — MH now has:
+   - Co-located CoA: `10.0.2.55`
+   - Subnet Mask, Default Gateway, DNS
+
+#### Phase 3 — Mobile IP Agent Discovery (Optional but Common)
+
+9. MH **listens for Agent Advertisements** from any FA on the foreign network.
+10. In co-located mode: MH uses its DHCP-assigned IP directly as CoA (no FA needed).
+11. MH may send **Agent Solicitation** to check if an FA is present.
+
+#### Phase 4 — Mobile IP Registration
+
+12. MH creates a **Registration Request**:
+    - Home Address (HoA): `192.168.10.5` (permanent, from home network)
+    - Care-of-Address (CoA): `10.0.2.55` (just obtained from DHCP)
+    - Home Agent (HA) address: `192.168.10.1`
+    - Lifetime: requested lease duration
+    - Authentication extension (HMAC-MD5)
+13. MH sends Registration Request **directly to HA** (since co-located — no FA).
+14. HA **authenticates** the request → updates binding table: `HoA 192.168.10.5 → CoA 10.0.2.55`.
+15. HA sends **Registration Reply (accepted)** back to MH.
+
+#### Phase 5 — Data Flow (After Successful Registration)
+
+16. **CN → MH:** CN sends packet to `192.168.10.5` (HoA) → routes to HA → HA encapsulates → tunnels to `10.0.2.55` (CoA) → MH decapsulates → receives data.
+17. **MH → CN:** MH sends packets with `src = 192.168.10.5` (HoA) directly to CN (triangle routing).
+
+---
+
+## Diagram
+
+```
+MOBILE IP — CLIENT INITIALIZATION VIA DHCP (DATA FLOW DIAGRAM)
+
+                    HOME NETWORK                    FOREIGN NETWORK
+                         │                                │
+ ┌──────────────┐        │        ┌──────────┐            │        ┌──────────────┐
+ │ CORRESPONDENT│        │        │   HOME   │            │        │   MOBILE     │
+ │  NODE (CN)  │        │        │  AGENT   │            │        │   HOST (MH)  │
+ │ 203.0.113.1  │        │        │   (HA)   │            │        │ (no IP yet)  │
+ └──────┬───────┘        │        │192.168.  │            │        └──────┬───────┘
+        │                │        │  10.1    │            │               │
+        │                │        └────┬─────┘            │               │
+        │                │             │                  │               │
+        │            INTERNET          │                  │               │
+        │                              │                  │               │
+ ═══════════════════════════════════════════════════════════════════════════════════
+ PHASE 1: LAYER 2 ATTACHMENT
+ ═══════════════════════════════════════════════════════════════════════════════════
+        │                              │                  │               │
+        │                              │        ┌─────────┴──────┐        │
+        │                              │        │  Wi-Fi AP /    │        │
+        │                              │        │  4G Base Station├────L2 assoc────>│
+        │                              │        └────────────────┘        │
+        │                              │         (802.11 auth+assoc      │
+        │                              │          or LTE RRC setup)       │
+        │                              │                                   │ L2 ✓
+ ═══════════════════════════════════════════════════════════════════════════════════
+ PHASE 2: DHCP — CoA ASSIGNMENT
+ ═══════════════════════════════════════════════════════════════════════════════════
+        │                              │        ┌─────────────────┐        │
+        │                              │        │   DHCP SERVER   │        │
+        │                              │        │ (Foreign Network)│        │
+        │                              │        └────────┬────────┘        │
+        │                              │                 │                  │
+        │                              │                 │<─DHCPDISCOVER──│
+        │                              │                 │  (broadcast)    │
+        │                              │                 │  src=0.0.0.0    │
+        │                              │                 │                  │
+        │                              │                 │──DHCPOFFER────>│
+        │                              │                 │  offer: 10.0.2.55│
+        │                              │                 │                  │
+        │                              │                 │<─DHCPREQUEST───│
+        │                              │                 │                  │
+        │                              │                 │──DHCPACK──────>│
+        │                              │                 │  CoA=10.0.2.55  │
+        │                              │                 │  GW=10.0.2.1    │
+        │                              │                 │  DNS=8.8.8.8    │
+        │                              │                 │  Lease=86400s   │
+        │                              │        └─────────────────┘   CoA ✓
+        │                              │                                   │
+ ═══════════════════════════════════════════════════════════════════════════════════
+ PHASE 3: MOBILE IP REGISTRATION
+ ═══════════════════════════════════════════════════════════════════════════════════
+        │                              │                                   │
+        │                              │<──Reg Request (direct)───────────│
+        │                              │  HoA=192.168.10.5                 │
+        │                              │  CoA=10.0.2.55 (DHCP assigned)   │
+        │                              │  Lifetime=3600                    │
+        │                              │  Auth=HMAC-MD5                    │
+        │                              │                                   │
+        │                              │ HA authenticates ✓                │
+        │                              │ Binding updated:                  │
+        │                              │ 192.168.10.5 → 10.0.2.55         │
+        │                              │                                   │
+        │                              │──Reg Reply (accepted)────────────>│
+        │                              │  Code=0 (success)                 │
+        │                              │  Lifetime=3600                    │
+        │                              │                            Reg ✓  │
+        │                              │                                   │
+ ═══════════════════════════════════════════════════════════════════════════════════
+ PHASE 4: DATA FLOW (CN → MH via HA tunnel; MH → CN direct)
+ ═══════════════════════════════════════════════════════════════════════════════════
+        │                              │                                   │
+        │──packet(dst=192.168.10.5)──>│                                   │
+        │  (CN doesn't know MH moved) │                                   │
+        │                              │ HA intercepts (proxy ARP)         │
+        │                              │ Encapsulates:                     │
+        │                              │ [outer: src=HA, dst=10.0.2.55]   │
+        │                              │ [inner: src=CN, dst=192.168.10.5]│
+        │                              │──TUNNEL────────────────────────>  │
+        │                              │  (outer dst = CoA = 10.0.2.55)   │
+        │                              │                                   │
+        │                              │              MH decapsulates:     │
+        │                              │              receives inner packet │
+        │                              │              (src=CN, dst=HoA) ✓  │
+        │                              │                                   │
+        │<─packet(src=192.168.10.5,──────────────────────────────────────│
+        │   dst=CN) DIRECT             │          MH replies DIRECTLY to CN│
+        │  (triangle routing)          │          (bypasses HA)            │
+        │                              │                                   │
+
+SUMMARY OF ADDRESSES:
+  MH Home Address (HoA):  192.168.10.5  (permanent, registered with HA)
+  MH Care-of-Address (CoA): 10.0.2.55  (temporary, assigned by foreign DHCP)
+  Home Agent (HA):         192.168.10.1
+  CN:                      203.0.113.1
+```
+
+*Figure: Mobile IP Client Initialization — L2 Attach → DHCP → Registration → Data Flow*
+
+---
+
+### Key Points of the Data Flow
+
+1. **DHCP gives the CoA** — The co-located CoA is the DHCP-assigned address in the foreign network.
+2. **MH registers directly with HA** — Since MH has its own IP (co-located), no FA is needed; MH sends Registration Request directly.
+3. **HA tunnels CN→MH traffic** — All incoming packets from CN are intercepted by HA and tunneled to the new CoA.
+4. **MH decapsulates itself** — Unlike FA-CoA mode where FA decapsulates, in co-located mode the MH itself removes the outer header.
+5. **MH sends directly to CN** — Reply traffic from MH goes directly to CN (not through HA) — triangle routing.
+6. **DHCP lease and Mobile IP lifetime must be coordinated** — If DHCP lease expires, CoA changes → Mobile IP re-registration needed.
+
+---
+
+### Comparison: CoA via FA vs CoA via DHCP (Co-Located)
+
+| Parameter | FA-Assigned CoA | DHCP Co-Located CoA |
+|---|---|---|
+| **CoA = ?** | FA's IP address (shared by all MHs) | MH's own unique IP from DHCP |
+| **Decapsulation by** | Foreign Agent (FA) | Mobile Host (MH) itself |
+| **FA required** | Yes | No |
+| **MH processing** | Lower (FA handles decap) | Higher (MH decapsulates) |
+| **IP address obtained via** | FA Agent Advertisement | DHCP DORA |
+| **Registration target** | Via FA → HA | Directly to HA |
+| **Suitable for** | Environments with FA deployed | Environments without FA (home Wi-Fi) |
+
+---
+
+## Conclusion
+
+The **client initialization via DHCP in Mobile IP** is a four-phase sequence: L2 attachment → DHCP (CoA assignment) → Mobile IP registration → data tunneling. DHCP provides the temporary **Care-of-Address** that enables the mobile device to receive tunneled packets in the foreign network, while Mobile IP registration keeps the Home Agent informed of the MH's current location. This mechanism enables seamless mobility while maintaining the MH's permanent Home Address identity to the rest of the internet.
+
+---
+
+# Q11. Basic Terminologies of Mobile IP
+
+## Introduction
+
+**Mobile IP** is built around a specific set of terms and concepts that define how mobility is managed at the IP layer. Understanding these terminologies is essential to understanding any Mobile IP question — they appear in registration, tunneling, agent discovery, and packet delivery explanations.
+
+---
+
+## Main Answer
+
+### 1. Mobile Host (MH)
+
+- The **device that moves** between networks while maintaining continuous communication.
+- Characterized by a **permanent Home Address (HoA)** that identifies it uniquely on the internet.
+- Examples: smartphone, laptop, tablet used while moving between Wi-Fi networks or cellular cells.
+- MH can be in its **home network** (home subnet, no tunneling needed) or in a **foreign network** (away from home, tunneling required).
+
+### 2. Home Agent (HA)
+
+- A **router** (or dedicated server) in the **MH's home network** that performs two critical functions:
+  - **Maintains a binding table**: Maps MH's Home Address → current Care-of-Address.
+  - **Intercepts and tunnels packets**: When MH is away, HA intercepts packets addressed to MH's HoA and tunnels them to MH's current CoA.
+- HA uses **Proxy ARP** to answer ARP requests for MH's HoA on the home network, ensuring CN's packets come to HA.
+- If MH is at home: HA is not involved in forwarding (packets route normally).
+
+### 3. Foreign Agent (FA)
+
+- A **router** in the **foreign network** (the network MH is visiting) that provides two services:
+  - **Broadcasts Agent Advertisements**: Announces itself to visiting MHs so they know they're in a foreign network.
+  - **Decapsulates tunneled packets**: Receives encapsulated packets from HA → removes outer IP header → delivers original packet to MH.
+- FA's IP address serves as the **Care-of-Address** for all MHs registered through it (shared CoA).
+- FA **forwards Registration Requests** from MH to HA and relays Registration Replies back.
+
+### 4. Correspondent Node (CN)
+
+- **Any internet host** that communicates with the Mobile Host.
+- CN is completely **unaware of MH's mobility** — it always sends packets to MH's permanent HoA.
+- In **basic Mobile IP**: CN sends to HoA → HA intercepts → tunnels to CoA. CN does nothing special.
+- In **Route Optimization** (Mobile IPv6): CN receives Binding Updates and can send directly to MH's CoA.
+
+### 5. Home Address (HoA)
+
+- The **permanent, fixed IP address** assigned to the MH from its home network subnet.
+- This address **never changes** regardless of where MH moves — it is the MH's permanent identity on the internet.
+- CN always uses HoA to address packets to MH.
+- HoA is registered with the Home Agent.
+- Example: MH's HoA = `192.168.10.5` (always, whether MH is at home or in Tokyo).
+
+### 6. Care-of-Address (CoA)
+
+- The **temporary IP address** used by MH while visiting a foreign network.
+- Represents MH's **current topological location** — routable in the foreign network.
+- Two types:
+  - **FA Care-of-Address**: FA's IP address, shared by all MHs registered with that FA. FA decapsulates.
+  - **Co-Located Care-of-Address**: MH's own IP in foreign network (obtained via DHCP). MH decapsulates.
+- CoA changes every time MH moves to a new foreign network.
+- HA maintains the binding: `HoA → CoA` to know where to tunnel packets.
+
+### 7. Binding
+
+- The **mapping between HoA and CoA** stored in HA's binding table.
+- Format: `{HoA, CoA, Lifetime, Timestamp}`
+- Created/updated when MH registers with HA (via Registration Request/Reply).
+- Expires when Lifetime elapses (MH must re-register before expiry).
+- Without a valid binding, HA cannot tunnel packets to MH (drops them or sends ICMP error).
+
+### 8. Agent Advertisement
+
+- **ICMP Router Advertisement messages** extended with a **Mobility Agent Extension** broadcast by HA and FA.
+- Contains: Agent's IP address, CoA (if FA), registration lifetime, flags (HA flag, FA flag, registration required flag).
+- MH **listens for Agent Advertisements** to:
+  - Detect movement (different agent IP than before = moved to new network).
+  - Learn FA's CoA (if present).
+  - Determine if it's still in the home network (HA advertisement).
+- MH can also send **Agent Solicitation** (ICMP Router Solicitation) to actively request advertisements.
+
+### 9. Agent Solicitation
+
+- An **ICMP Router Solicitation** message sent by MH to request Agent Advertisements immediately.
+- Used when MH cannot wait for the next periodic advertisement (e.g., just moved and needs CoA quickly).
+- Destination: `224.0.0.2` (all-routers multicast) or `255.255.255.255` (broadcast).
+- Agents receiving the solicitation reply with an immediate Agent Advertisement.
+
+### 10. Tunneling
+
+- The process of **encapsulating one IP packet inside another** to route it across a network where the original destination address is not directly reachable.
+- In Mobile IP: HA encapsulates `{src=CN, dst=HoA}` inside `{src=HA, dst=CoA}`.
+- The outer header routes the packet from HA to CoA (FA or MH).
+- FA/MH **decapsulates** (removes outer header) and processes the original inner packet.
+- Types: **IP-in-IP (RFC 2003)**, **Minimal Encapsulation (RFC 2004)**, **GRE (RFC 1701)**.
+
+### 11. Triangle Routing
+
+- The **inefficient routing path** in basic Mobile IP:
+  - **CN → HA → MH** (forward path goes via home network even if CN and MH are nearby)
+  - **MH → CN** (direct — no home network involvement)
+- Creates a "triangle" shape in the routing path.
+- **Problem**: Even if CN and MH are in the same city, packets must travel to the home network (possibly in another country) and back.
+- **Solution**: Route Optimization (Mobile IPv6) — HA sends Binding Update to CN; CN then sends directly to CoA.
+
+### 12. Reverse Tunneling
+
+- A tunnel in the **opposite direction**: MH → FA → HA → CN (instead of MH sending directly to CN).
+- Needed to solve the **Ingress Filtering problem**: routers may drop MH's packets because source IP (HoA) doesn't belong to the foreign subnet.
+- With reverse tunneling: FA encapsulates MH's packet `{src=HoA, dst=CN}` in `{src=CoA, dst=HA}` → passes ingress filter → HA decapsulates → forwards to CN.
+- Also needed for **multicast** and proper **TTL** handling.
+
+### 13. Handover / Handoff
+
+- The process of **transferring MH's connection from one access point/base station to another** as it moves.
+- In Mobile IP, handover requires:
+  - MH detects new FA (via new Agent Advertisement).
+  - MH obtains new CoA (FA's IP or new DHCP address).
+  - MH sends new Registration Request to HA with new CoA.
+  - HA updates binding: `HoA → new CoA`.
+- **Seamless handover**: Old FA may buffer packets during transition; new FA quickly receives tunneled data.
+
+### 14. Co-Located Care-of-Address
+
+- A CoA where the **MH itself holds the IP address** (not shared with FA).
+- Obtained via DHCP in the foreign network.
+- MH acts as its own decapsulation agent.
+- Advantage: No FA infrastructure needed.
+- Disadvantage: MH must handle decapsulation processing; each MH needs its own IP (vs shared FA-CoA).
+
+---
+
+## Summary Table: Mobile IP Terminologies
+
+| Term | Short Definition | Key Role |
+|---|---|---|
+| **Mobile Host (MH)** | Device that moves between networks | Initiates registration; sends/receives data |
+| **Home Agent (HA)** | Router in home network | Maintains binding; intercepts & tunnels packets |
+| **Foreign Agent (FA)** | Router in visited network | Provides CoA; decapsulates tunneled packets |
+| **Correspondent Node (CN)** | Any internet host communicating with MH | Sends to HoA; unaware of MH's location |
+| **Home Address (HoA)** | Permanent IP address of MH | Identity of MH; CN always uses this |
+| **Care-of-Address (CoA)** | Temporary IP in foreign network | Current location of MH; HA tunnels here |
+| **Binding** | HoA → CoA mapping at HA | Enables correct tunneling to current location |
+| **Agent Advertisement** | ICMP broadcast by HA/FA | MH discovers agents and detects movement |
+| **Agent Solicitation** | MH's ICMP request for advertisement | Speeds up agent discovery on new network |
+| **Tunneling** | Encapsulating IP-in-IP | Routes packets from HA to FA/MH's CoA |
+| **Triangle Routing** | CN→HA→MH but MH→CN direct | Inefficiency in basic Mobile IP |
+| **Reverse Tunneling** | MH→FA→HA→CN path | Solves ingress filtering; needed for multicast |
+| **Handover** | Changing access point / FA | Triggers new CoA acquisition and re-registration |
+| **Co-Located CoA** | MH's own IP (DHCP) as CoA | FA-less operation; MH decapsulates itself |
+
+---
+
+## Conclusion
+
+The terminologies of Mobile IP form a complete vocabulary for describing **how mobile devices maintain continuous IP-level communication while roaming across networks**. The interplay between **HoA (permanent identity)** and **CoA (current location)**, managed by the **HA's binding table** and communicated through **registration messages**, is the fundamental mechanism that enables IP mobility. These terms will appear throughout any Mobile IP question — knowing them precisely is the foundation of full-marks answers.
+
+---
+
+# UNIT REVISION TABLE (Updated)
+
+| Topic | Key Points |
+|---|---|
+| **Indirect TCP (I-TCP)** | Split connection at FA · FA as TCP proxy · Local ACK · No E2E semantics |
+| **Snooping TCP** | FA snoops ACKs · Transparent · Local retransmit · E2E preserved · Fails with TLS |
+| **Mobile TCP (M-TCP)** | SH · window=0 · Persist mode · Long disconnection · cwnd frozen |
+| **T/TCP** | TAO · CC number · SYN+Data+FIN piggybacked · 1 RTT · Short transactions |
+| **DHCP** | DORA · Discover→Offer→Request→ACK · CoA assignment · Lease · RFC 2131 |
+| **Mobile IP Client Init via DHCP** | L2 attach → DHCP (CoA) → Registration → Tunnel → Data flow |
+| **Mobile IP Terminologies** | MH · HA · FA · CN · HoA · CoA · Binding · Agent Adv. · Tunneling · Triangle routing |
+| **Mobile IP Packet Delivery** | Agent Discovery → Registration → HA tunnels → FA decapsulates → MH receives |
+| **Encapsulation Types** | IP-in-IP (RFC 2003, 20B) · Minimal (RFC 2004, 8-12B) · GRE (RFC 1701, 4B+) |
+| **Registration** | Via FA (CoA=FA's IP) · Co-located (CoA=MH's own DHCP IP, direct to HA) |
+| **Reverse Tunneling** | Ingress filtering fix · MH→FA→HA→CN · FA's CoA as source |
+
+---
+
+# Last Minute Keywords (Updated)
+
+**DHCP:** DORA · Discover (broadcast 255.255.255.255) · Offer · Request · ACK · Lease · Lease time · Renewal at T1=50% · Rebind at T2=87.5% · Release · RFC 2131 · Port 67 (server) / 68 (client) · Co-located CoA in Mobile IP
+
+**Mobile IP Client Init:** L2 attach → DHCPDISCOVER → DHCPOFFER (CoA) → DHCPACK → Reg Request (direct to HA) → Binding updated → Tunnel established → Triangle routing
+
+**Mobile IP Terminologies:** MH · HA · FA · CN · HoA (permanent) · CoA (temporary) · Binding (HoA→CoA) · Agent Advertisement · Agent Solicitation · Tunneling · Triangle routing · Reverse tunneling · Handover · Co-Located CoA
+
+---
+
+*End of Unit Notes — TCP Modifications, Mobile IP & DHCP*
 *Pattern: SPPU 2019 & 2024 Compatible*
 *Covers: ND25 · MJ25 · ND24 · MJ24 · MJ23 · ND23*
