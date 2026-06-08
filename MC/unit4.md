@@ -128,7 +128,7 @@ INDIRECT TCP — SPLIT CONNECTION MODEL
   │ MH sees: one endpoint (FA acting as CN)                        │
   └────────────────────────────────────────────────────────────────┘
 ```
-
+![Indirect TCP — Split Connection at Foreign Agent](assets/ITCP.png)
 *Figure: Indirect TCP — Split Connection at Foreign Agent*
 
 ---
@@ -285,7 +285,7 @@ SNOOPING TCP — FA TRANSPARENT SNOOPING
 
   KEY: FA is invisible to CN and MH — end-to-end TCP connection intact
 ```
-
+![Snooping TCP — FA Snooping Agent Intercepts Wireless Losses Transparently](assets/STCP.png)
 *Figure: Snooping TCP — FA Snooping Agent Intercepts Wireless Losses Transparently*
 
 ---
@@ -428,7 +428,7 @@ MOBILE TCP — SUPERVISORY HOST AND ZERO-WINDOW MECHANISM
   │ No retransmit timer fires. No cwnd reduction. No reset.    │
   └─────────────────────────────────────────────────────────────┘
 ```
-
+![Mobile TCP — SH uses Zero Window to Freeze CN during MH Disconnection*](assets/MTCP.png)
 *Figure: Mobile TCP — SH uses Zero Window to Freeze CN during MH Disconnection*
 
 ---
@@ -582,7 +582,7 @@ CLIENT          SERVER                         CLIENT          SERVER
   │ CC (Connection Count) identifies trusted clients → skip SYN-wait   │
   └─────────────────────────────────────────────────────────────────────┘
 ```
-
+![Standard TCP vs T/TCP — Transaction Round-Trip Comparison](assets/TTCP.png)
 *Figure: Standard TCP vs T/TCP — Transaction Round-Trip Comparison*
 
 ---
@@ -750,7 +750,7 @@ AGENT DISCOVERY:
    FA broadcasts: "I am FA, my address is X, services available"
    MH receives advertisement → knows it's in a foreign network
 ```
-
+![Mobile IP — Agent Discovery, Registration, Tunneling, and Packet Delivery](assets/MIP.png)
 *Figure: Mobile IP — Agent Discovery, Registration, Tunneling, and Packet Delivery*
 
 ---
@@ -1008,7 +1008,7 @@ COMPARISON:
 │ IP Address from      │ FA advertisement   │ DHCP                 │
 └──────────────────────┴────────────────────┴──────────────────────┘
 ```
-
+![Mobile IP Registration — Via FA and Direct (Co-Located)](assets/m1.png)
 *Figure: Mobile IP Registration — Via FA and Direct (Co-Located)*
 
 ---
@@ -1117,7 +1117,7 @@ PACKET DELIVERY BETWEEN TWO MOBILE NODES (Double Triangle):
         | (symmetric double triangle routing)                |
 
 ```
-
+![Reverse Tunneling (Ingress Filtering Solution) and Two-Mobile-Node Communication](assets/rt.png)
 *Figure: Reverse Tunneling (Ingress Filtering Solution) and Two-Mobile-Node Communication*
 
 ---
@@ -1407,7 +1407,7 @@ DHCP MESSAGE FIELDS:
 │ Options (Type 53=Msg type, Type 1=Subnet, etc.)     │
 └─────────────────────────────────────────────────────┘
 ```
-
+![DHCP DORA Process — Complete IP Address Assignment Flow](assets/dora.png)
 *Figure: DHCP DORA Process — Complete IP Address Assignment Flow*
 
 ---
@@ -1613,7 +1613,7 @@ SUMMARY OF ADDRESSES:
   Home Agent (HA):         192.168.10.1
   CN:                      203.0.113.1
 ```
-
+![Mobile IP Client Initialization — L2 Attach → DHCP → Registration → Data Flow](assets/client.png)
 *Figure: Mobile IP Client Initialization — L2 Attach → DHCP → Registration → Data Flow*
 
 ---
